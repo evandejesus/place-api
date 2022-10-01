@@ -11,3 +11,6 @@
 - message queue
 - CDN caching
 - event storage
+
+## Bugs
+- cant do coordinates of 0

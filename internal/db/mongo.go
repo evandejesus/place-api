@@ -1,8 +1,7 @@
-package connectionhelper
+package db
 
 import (
 	"context"
-	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -13,6 +12,7 @@ const (
 	CONNECTIONSTRING = "mongodb://localhost:27017"
 	DB               = "place"
 	SQUARES          = "squares"
+	LAST_TIMESTAMPS  = "last_timestamps"
 )
 
 func GetMongoClient() *mongo.Client {
@@ -22,7 +22,7 @@ func GetMongoClient() *mongo.Client {
 		Password:   "place",
 	}
 
-	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017/place").SetAuth(credential)
+	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017/" + DB).SetAuth(credential)
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
 		panic(err)
@@ -30,6 +30,5 @@ func GetMongoClient() *mongo.Client {
 	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		panic(err)
 	}
-	log.Println("pinged")
 	return client
 }
