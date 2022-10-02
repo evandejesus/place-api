@@ -130,7 +130,7 @@ func (sq *NewSquare) Validate() error {
 	if sq.Color >= 16 {
 		return errors.New("color must be less than 16")
 	}
-	if sq.X < 0 || sq.Y < 0 {
+	if sq.X < 0 || sq.Y < 0 || sq.X >= CANVAS_SIZE || sq.Y >= CANVAS_SIZE {
 		return fmt.Errorf("invalid coordinates: (%d,%d)", sq.X, sq.Y)
 	}
 	return nil
