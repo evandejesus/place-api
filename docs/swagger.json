@@ -1,0 +1,18 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is an implementation of r/place using Go.",
+        "title": "Place API",
+        "contact": {
+            "name": "Evan",
+            "email": "evanjdejesus@gmail.com"
+        },
+        "license": {
+            "name": "MIT License"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api",
+    "paths": {}
+}

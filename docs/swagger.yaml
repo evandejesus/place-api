@@ -1,0 +1,13 @@
+basePath: /api
+host: localhost:8080
+info:
+  contact:
+    email: evanjdejesus@gmail.com
+    name: Evan
+  description: This is an implementation of r/place using Go.
+  license:
+    name: MIT License
+  title: Place API
+  version: "1.0"
+paths: {}
+swagger: "2.0"

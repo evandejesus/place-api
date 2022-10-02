@@ -17,6 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var squareCollection *mongo.Collection = db.GetCollection(db.Client, "squares")
+
 // checkRateLimit throttles square creation to every TIMEOUT seconds.
 func CheckRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -39,13 +41,11 @@ func CheckRateLimit() gin.HandlerFunc {
 			return
 		}
 
-		mongoDB := db.GetMongoClient(context.TODO())
-		collection := db.Squares(mongoDB)
 		opts := options.FindOne().SetProjection(bson.D{{Key: "Timestamp", Value: 1}}).SetSort(bson.D{{Key: "Timestamp", Value: -1}})
 		var json struct {
 			Timestamp int64 `bson:"timestamp"`
 		}
-		err = collection.FindOne(context.TODO(), bson.D{{Key: "Author", Value: authorStruct.Author}}, opts).Decode(&json)
+		err = squareCollection.FindOne(context.TODO(), bson.D{{Key: "Author", Value: authorStruct.Author}}, opts).Decode(&json)
 		// no timestamps exist with this user
 		if err == mongo.ErrNoDocuments {
 			c.Next()
