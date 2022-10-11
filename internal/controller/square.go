@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -20,7 +21,7 @@ import (
 )
 
 const (
-	CANVAS_SIZE = 10
+	CANVAS_SIZE = 3
 )
 
 type Square struct {
@@ -59,12 +60,20 @@ func GetCanvas(c *gin.Context) {
 	redisCache := cache.GetRedisClient()
 
 	const ARRAY_LENGTH = CANVAS_SIZE * CANVAS_SIZE
-	bytes, err := redisCache.GetRange(ctx, fmt.Sprintf("squares-%d", CANVAS_SIZE), 0, ARRAY_LENGTH).Bytes()
+	result := redisCache.Get(ctx, fmt.Sprintf("squares-%d", CANVAS_SIZE))
+	if result.Err() != nil {
+		c.JSON(http.StatusOK, make([]byte, ARRAY_LENGTH))
+		return
+	}
+	bytes, err := result.Bytes()
+	newBytes := make([]byte, ARRAY_LENGTH)
+	copy(newBytes, bytes)
 	if helpers.Error(c, err) {
 		log.Println(err)
 		return
 	}
-	c.JSON(http.StatusOK, bytes)
+	log.Info(newBytes)
+	c.JSON(http.StatusOK, newBytes)
 }
 
 // getSquareByLocation returns a single square given X and Y coordinates.
@@ -108,6 +117,13 @@ func PutSquare(c *gin.Context) {
 		return
 	}
 
+	if json.X >= CANVAS_SIZE || json.Y >= CANVAS_SIZE {
+		err := errors.New("invalid coordinate")
+		c.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": err.Error()})
+		return
+	}
+
 	/*
 		This function creates a square object if none exists at the given coordinate.
 		Otherwise, updates all provided fields.
@@ -130,17 +146,17 @@ func PutSquare(c *gin.Context) {
 	if helpers.Error(c, err) {
 		return
 	}
-	log.Debug(squareResult)
+	log.Debug("squareResult:", squareResult)
 	// create timestamp entry
 	timestampInsert := bson.D{{Key: "Author", Value: json.Author}, {Key: "Timestamp", Value: timestamp}}
 	timestampResult, err := timestampsCollection.InsertOne(context.TODO(), timestampInsert)
 	if helpers.Error(c, err) {
 		return
 	}
-	log.Debug(timestampResult)
+	log.Debug("timestampResult:", timestampResult)
 
 	redisResult := redisCache.BitField(context.TODO(), fmt.Sprintf("squares-%d", CANVAS_SIZE), "SET", "u4", fmt.Sprintf("#%d", json.X+CANVAS_SIZE*json.Y), json.Color)
-	log.Debug(redisResult)
+	log.Debug("redisResult:", redisResult)
 
 	c.JSON(http.StatusOK, map[string]interface{}{"status": true, "message": fmt.Sprintf("user %s successfully inserted color %d at pos (%d,%d)", json.Author, json.Color, json.X, json.Y)})
 }

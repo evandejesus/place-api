@@ -1,7 +1,11 @@
 package main
 
 import (
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 
 	docs "github.com/evandejesus/place-api/docs"
 	controller "github.com/evandejesus/place-api/internal/controller"
@@ -10,6 +14,10 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+func init() {
+	log.SetLevel(log.DebugLevel)
+}
 
 // @title           Place API
 // @version         1.0
@@ -28,6 +36,17 @@ func main() {
 	docs.SwaggerInfo.BasePath = "/api"
 	router.SetTrustedProxies(nil)
 	router.Use(gin.Logger())
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"PUT", "PATCH"},
+		AllowHeaders:     []string{"Origin"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		AllowOriginFunc: func(origin string) bool {
+			return origin == "https://github.com"
+		},
+		MaxAge: 12 * time.Hour,
+	}))
 
 	api := router.Group("/api")
 	{
