@@ -51,7 +51,10 @@ func GetSquares(c *gin.Context) {
 	if helpers.Error(c, err) {
 		return
 	}
-	c.JSON(http.StatusOK, results)
+	c.JSON(http.StatusOK, helpers.UserResponse{
+		Error: false,
+		Data:  results,
+	})
 }
 
 // getCanvas returns the whole redis bitfield as a byte array.
@@ -66,14 +69,18 @@ func GetCanvas(c *gin.Context) {
 		return
 	}
 	bytes, err := result.Bytes()
+	log.Debug("bytes: ", bytes)
 	newBytes := make([]byte, ARRAY_LENGTH)
 	copy(newBytes, bytes)
 	if helpers.Error(c, err) {
 		log.Println(err)
 		return
 	}
-	log.Info(newBytes)
-	c.JSON(http.StatusOK, newBytes)
+	log.Info("newBytes: ", newBytes)
+	c.JSON(http.StatusOK, helpers.UserResponse{
+		Error: false,
+		Data:  newBytes,
+	})
 }
 
 // getSquareByLocation returns a single square given X and Y coordinates.
@@ -88,16 +95,22 @@ func GetSquareByLocation(c *gin.Context) {
 	var square Square
 	err := squareCollection.FindOne(context.TODO(), filter).Decode(&square)
 	if err == mongo.ErrNoDocuments {
-		c.JSON(http.StatusOK, Square{
-			X:     X,
-			Y:     Y,
-			Color: 0,
+		c.JSON(http.StatusOK, helpers.UserResponse{
+			Error: false,
+			Data: Square{
+				X:     X,
+				Y:     Y,
+				Color: 0,
+			},
 		})
 
 		return
 	}
-	c.JSON(http.StatusOK, square)
 
+	c.JSON(http.StatusOK, helpers.UserResponse{
+		Error: false,
+		Data:  square,
+	})
 }
 
 // putSquare creates a square object in the db.
@@ -142,21 +155,22 @@ func PutSquare(c *gin.Context) {
 		{Key: "Timestamp", Value: timestamp},
 	}}}
 	// upsert square
-	squareResult, err := squareCollection.UpdateOne(context.TODO(), filter, update, opts)
+	_, err := squareCollection.UpdateOne(context.TODO(), filter, update, opts)
 	if helpers.Error(c, err) {
 		return
 	}
-	log.Debug("squareResult:", squareResult)
 	// create timestamp entry
 	timestampInsert := bson.D{{Key: "Author", Value: json.Author}, {Key: "Timestamp", Value: timestamp}}
-	timestampResult, err := timestampsCollection.InsertOne(context.TODO(), timestampInsert)
+	_, err = timestampsCollection.InsertOne(context.TODO(), timestampInsert)
 	if helpers.Error(c, err) {
 		return
 	}
-	log.Debug("timestampResult:", timestampResult)
 
-	redisResult := redisCache.BitField(context.TODO(), fmt.Sprintf("squares-%d", CANVAS_SIZE), "SET", "u4", fmt.Sprintf("#%d", json.X+CANVAS_SIZE*json.Y), json.Color)
-	log.Debug("redisResult:", redisResult)
-
-	c.JSON(http.StatusOK, map[string]interface{}{"status": true, "message": fmt.Sprintf("user %s successfully inserted color %d at pos (%d,%d)", json.Author, json.Color, json.X, json.Y)})
+	// set bitfield in redis
+	redisResult := redisCache.BitField(context.TODO(), fmt.Sprintf("squares-%d", CANVAS_SIZE), "SET", "u8", fmt.Sprintf("#%d", json.X+CANVAS_SIZE*json.Y), json.Color)
+	log.Trace(redisResult)
+	c.JSON(http.StatusOK, helpers.UserResponse{
+		Error: false,
+		Data:  fmt.Sprintf("user %s successfully inserted color %d at pos (%d,%d)", json.Author, json.Color, json.X, json.Y),
+	})
 }

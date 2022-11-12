@@ -1,7 +1,6 @@
 package helpers
 
 type UserResponse struct {
-	Status  bool                   `json:"status"`
-	Message string                 `json:"message"`
-	Data    map[string]interface{} `json:"data"`
+	Error bool        `json:"error"`
+	Data  interface{} `json:"data"`
 }
